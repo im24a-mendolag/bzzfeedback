@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+{% block title %}Choose subject{% endblock %}
+{% block content %}
+  <h2>Choose a subject and category</h2>
+  <form method="post" action="{{ url_for('routes.submit_feedback') }}">
+    <input type="hidden" name="teacher_id" value="{{ teacher_id }}" />
+    <label>Subject
+      <select name="subject_id" required>
+        {% for s in subjects %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Category (optional)
+      <select name="category_id">
+        <option value="">-- none --</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Or write your own category
+      <input type="text" name="custom_category" placeholder="e.g., Homework clarity" />
+    </label>
+    <label>Title
+      <input type="text" name="title" required />
+    </label>
+    <label>Info
+      <textarea name="info" rows="6" required></textarea>
+    </label>
+    <button class="btn primary" type="submit">Send feedback</button>
+  </form>
+{% endblock %}
+

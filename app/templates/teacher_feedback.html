@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% block title %}Teacher - Feedback{% endblock %}
+{% block content %}
+  <div class="space-between">
+    <h2>Your feedback</h2>
+    {% if show_unread_only %}
+      <span class="badge warn">Unread only</span>
+    {% else %}
+      <span class="badge info">All</span>
+    {% endif %}
+  </div>
+  <div style="margin:.6rem 0">
+    {% if show_unread_only %}
+      <a class="btn small group" href="{{ url_for('routes.teacher_feedback') }}">Show all</a>
+    {% else %}
+      <a class="btn small group" href="{{ url_for('routes.teacher_feedback', unread=1) }}">Show unread only</a>
+    {% endif %}
+  </div>
+  {% if not feedback %}
+    <p>No feedback yet.</p>
+  {% else %}
+    {% for f in feedback %}
+      <div class="card">
+        <div class="space-between">
+          <div class="vstack">
+            <strong>{{ f.title }}</strong>
+            <div class="tag">Subject: {{ f.subject_name }}{% if f.category_name %} • Category: {{ f.category_name }}{% endif %}</div>
+          </div>
+          <div class="tag">{{ f.created_at }}</div>
+        </div>
+        <p>{{ f.info }}</p>
+        {% if not f.is_read %}
+          <form method="post" action="{{ url_for('routes.mark_feedback_read', feedback_id=f.id) }}">
+            <button class="btn success" type="submit">Mark as read</button>
+          </form>
+        {% else %}
+          <span class="badge success">Read</span>
+        {% endif %}
+        <div style="margin-top:.5rem">
+          <a class="btn small" href="{{ url_for('routes.feedback_thread', feedback_id=f.id) }}">Open thread</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+

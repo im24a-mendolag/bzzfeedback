@@ -1,0 +1,64 @@
+## BZZ Feedback (Flask + MySQL)
+
+### Setup
+
+1) Create virtualenv and install deps
+
+```bash
+python -m venv venv
+venv\\Scripts\\activate
+pip install -r requirements.txt
+```
+
+2) Configure environment
+
+Copy `.env.example` to `.env` and set values for MySQL and `FLASK_SECRET_KEY`.
+
+3) Initialize database (drops and recreates `bzzfeedbackdb`)
+
+```bash
+python scripts/init_db.py
+```
+
+4) Run app (development)
+
+```bash
+set FLASK_APP=wsgi:app
+flask run --reload
+```
+
+Or via gunicorn (production-like):
+
+```bash
+gunicorn -w 2 -b 0.0.0.0:8000 wsgi:app
+```
+
+### Reset/set a user's password
+
+Use the helper script to set a new password for any user (we use the `email` field as username):
+
+```bash
+python scripts/set_password.py <username> <new_password>
+```
+
+Examples:
+
+```bash
+# Set password for teacher 'alice'
+python scripts/set_password.py alice Password123!
+
+# Set password for student 'john'
+python scripts/set_password.py john MyNewPass!
+```
+
+You should see "Password updated for '<username>'" if the user exists.
+
+### Flows
+
+- Students: Login → choose teacher → choose subject and category (or custom) → submit feedback (title + info). Feedback is stored with optional student_id (anonymity depends on how you provision accounts).
+- Teachers: Login → view feedback per subject → mark as read.
+
+### SQL files
+
+Located under `sql/`. They include a simple dependency header parsed by `scripts/init_db.py`.
+
