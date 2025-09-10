@@ -10,7 +10,8 @@ INSERT IGNORE INTO subjects (name) VALUES
 -- Default teachers as users (set real password hashes later via app or script)
 INSERT IGNORE INTO users (username, password_hash, role) VALUES
 ('alice', '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'teacher'),
-('bob',   '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'teacher');
+('bob',   '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'teacher'),
+('admin', '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'admin');
 
 -- Ensure teachers table rows exist for these users
 INSERT IGNORE INTO teachers (user_id)

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS feedback (
     category_id INT NULL,
     title VARCHAR(255) NOT NULL,
     info TEXT NOT NULL,
+    moderation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     is_read TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_fb_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL,

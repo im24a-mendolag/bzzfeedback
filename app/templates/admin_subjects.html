@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block title %}Admin - Subjects{% endblock %}
+{% block content %}
+  <h2>All subjects</h2>
+  {% if not subjects %}
+    <p>No subjects.</p>
+  {% else %}
+    <div class="row" style="flex-wrap:wrap">
+      {% for s in subjects %}
+        <div class="card" style="min-width:260px;flex:1 1 300px">
+          <div class="space-between">
+            <div class="vstack">
+              <strong>{{ s.name }}</strong>
+              <div class="tag">Pending: {{ s.pending_count }} • Approved: {{ s.approved_count }} • Rejected: {{ s.rejected_count }}</div>
+            </div>
+            <a class="btn primary small" href="{{ url_for('routes.admin_feedback', subject_id=s.id) }}">Open</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+

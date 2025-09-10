@@ -17,10 +17,12 @@ def test_student_dashboard_and_submit_feedback(client):
     assert resp.status_code == 200
     assert b'Choose a subject' in resp.data
 
-    # Submit feedback (no category)
+    # Submit feedback with custom category (required)
     resp = client.post('/submit-feedback', data={
         'teacher_id': '1',
         'subject_id': '1',
+        'category_id': '__custom__',
+        'custom_category': 'TestCat',
         'title': 'Test Title',
         'info': 'This is test feedback.'
     }, follow_redirects=True)
@@ -31,5 +33,7 @@ def test_student_dashboard_and_submit_feedback(client):
     resp = client.get('/my-feedback')
     assert resp.status_code == 200
     assert b'Test Title' in resp.data
+    # Pending moderation badge should be visible
+    assert b'Waiting for validation' in resp.data
 
 

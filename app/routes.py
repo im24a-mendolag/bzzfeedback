@@ -87,6 +87,8 @@ def dashboard():
     if current_user.role == 'teacher':
         current_app.logger.info(f"view teacher dashboard user_id={current_user.id}")
         return redirect(url_for('routes.teacher_feedback'))
+    if current_user.role == 'admin':
+        return redirect(url_for('routes.admin_feedback'))
     # student flow: choose teacher then subject
     teachers = query_all(
         """
@@ -108,7 +110,7 @@ def my_feedback():
 
     rows = query_all(
         """
-        SELECT f.id, f.title, f.info, f.is_read, f.created_at,
+        SELECT f.id, f.title, f.info, f.is_read, f.moderation_status, f.created_at,
                s.name AS subject_name,
                u.username AS teacher_name,
                COALESCE(fc.name, '') AS category_name
@@ -196,8 +198,8 @@ def submit_feedback():
 
         execute(
             """
-            INSERT INTO feedback (student_id, teacher_id, subject_id, category_id, title, info)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO feedback (student_id, teacher_id, subject_id, category_id, title, info, moderation_status)
+            VALUES (%s, %s, %s, %s, %s, %s, 'pending')
             """,
             (int(current_user.id) if current_user.role == 'student' else None, teacher_id, subject_id, category_id, title, info),
         )
@@ -234,7 +236,7 @@ def teacher_feedback():
                    COALESCE(COUNT(f.id), 0) AS total_count
             FROM teacher_subjects ts
             JOIN subjects s ON s.id = ts.subject_id
-            LEFT JOIN feedback f ON f.teacher_id = %s AND f.subject_id = s.id
+            LEFT JOIN feedback f ON f.teacher_id = %s AND f.subject_id = s.id AND f.moderation_status = 'approved'
             WHERE ts.teacher_id = %s
             GROUP BY s.id, s.name
             ORDER BY s.name
@@ -247,7 +249,7 @@ def teacher_feedback():
     # Per-subject feedback list
     subject_id = int(subject_id)
     show_unread_only = request.args.get('unread') == '1'
-    where_clause = 'WHERE f.teacher_id=%s AND f.subject_id=%s' + (' AND f.is_read=0' if show_unread_only else '')
+    where_clause = "WHERE f.teacher_id=%s AND f.subject_id=%s AND f.moderation_status='approved'" + (' AND f.is_read=0' if show_unread_only else '')
     rows = query_all(
         f"""
         SELECT f.id, f.title, f.info, f.is_read, f.created_at,
@@ -263,6 +265,66 @@ def teacher_feedback():
     )
     current_app.logger.info(f"view teacher_feedback user_id={current_user.id} subject_id={subject_id} unread_only={show_unread_only} count={len(rows)}")
     return render_template('teacher_feedback.html', feedback=rows, show_unread_only=show_unread_only, subject_id=subject_id)
+
+
+@bp.get('/admin/feedback')
+@login_required
+def admin_feedback():
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+
+    subject_id = request.args.get('subject_id')
+    if not subject_id:
+        subjects = query_all(
+            """
+            SELECT s.id, s.name,
+                   COALESCE(SUM(CASE WHEN f.moderation_status='pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+                   COALESCE(SUM(CASE WHEN f.moderation_status='approved' THEN 1 ELSE 0 END), 0) AS approved_count,
+                   COALESCE(SUM(CASE WHEN f.moderation_status='rejected' THEN 1 ELSE 0 END), 0) AS rejected_count,
+                   COALESCE(COUNT(f.id), 0) AS total_count
+            FROM subjects s
+            LEFT JOIN feedback f ON f.subject_id = s.id
+            GROUP BY s.id, s.name
+            ORDER BY s.name
+            """
+        )
+        return render_template('admin_subjects.html', subjects=subjects)
+
+    subject_id = int(subject_id)
+    status = request.args.get('status', 'pending')
+    rows = query_all(
+        """
+        SELECT f.id, f.title, f.info, f.moderation_status, f.created_at,
+               s.name AS subject_name,
+               u_t.username AS teacher_name
+        FROM feedback f
+        JOIN subjects s ON s.id = f.subject_id
+        JOIN teachers t ON t.id = f.teacher_id
+        JOIN users u_t ON u_t.id = t.user_id
+        WHERE f.subject_id=%s AND f.moderation_status=%s
+        ORDER BY f.created_at DESC
+        """,
+        (subject_id, status),
+    )
+    return render_template('admin_feedback.html', feedback=rows, subject_id=subject_id, status=status)
+
+
+@bp.post('/admin/feedback/<int:feedback_id>/approve')
+@login_required
+def admin_approve(feedback_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    execute("UPDATE feedback SET moderation_status='approved' WHERE id=%s", (feedback_id,))
+    return redirect(request.referrer or url_for('routes.admin_feedback'))
+
+
+@bp.post('/admin/feedback/<int:feedback_id>/reject')
+@login_required
+def admin_reject(feedback_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    execute("UPDATE feedback SET moderation_status='rejected' WHERE id=%s", (feedback_id,))
+    return redirect(request.referrer or url_for('routes.admin_feedback'))
 
 
 @bp.post('/teacher/feedback/<int:feedback_id>/mark-read')

@@ -18,6 +18,28 @@ def main():
     try:
         cur = conn.cursor(dictionary=True)
 
+        # Ensure an admin user exists (username: admin / password: admin)
+        from werkzeug.security import generate_password_hash
+        cur.execute("SELECT id FROM users WHERE username=%s", ("admin",))
+        admin_row = cur.fetchone()
+        admin_hash = generate_password_hash("admin")
+        if not admin_row:
+            cur2 = conn.cursor()
+            cur2.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'admin')",
+                ("admin", admin_hash)
+            )
+            conn.commit()
+            cur2.close()
+        else:
+            cur2 = conn.cursor()
+            cur2.execute(
+                "UPDATE users SET role='admin', password_hash=%s WHERE id=%s",
+                (admin_hash, admin_row['id'])
+            )
+            conn.commit()
+            cur2.close()
+
         # Ensure some teachers and subjects
         teachers = []
         cur.execute("SELECT t.id, u.username FROM teachers t JOIN users u ON u.id=t.user_id ORDER BY t.id")

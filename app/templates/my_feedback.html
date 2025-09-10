@@ -15,10 +15,16 @@
           <div class="tag">{{ f.created_at }}</div>
         </div>
         <p>{{ f.info }}</p>
-        {% if f.is_read %}
-          <span class="badge success">Read</span>
+        {% if f.moderation_status == 'pending' %}
+          <span class="badge info">Waiting for validation</span>
+        {% elif f.moderation_status == 'rejected' %}
+          <span class="badge danger">Rejected</span>
         {% else %}
-          <span class="badge warn">Unread</span>
+          {% if f.is_read %}
+            <span class="badge success">Read</span>
+          {% else %}
+            <span class="badge warn">Unread</span>
+          {% endif %}
         {% endif %}
         <div style="margin-top:.5rem">
           <a class="btn small" href="{{ url_for('routes.feedback_thread', feedback_id=f.id) }}">Open thread</a>

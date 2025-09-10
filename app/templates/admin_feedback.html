@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+{% block title %}Admin - Feedback{% endblock %}
+{% block content %}
+  <div class="space-between">
+    <h2>Moderate feedback</h2>
+    <div class="actions" aria-label="Moderation status">
+      <a class="btn small" href="{{ url_for('routes.admin_feedback') }}">Back to subjects</a>
+      {% set statuses = ['pending','approved','rejected'] %}
+      {% for st in statuses %}
+        <a class="btn small group {% if st == status %}primary{% endif %}" href="{{ url_for('routes.admin_feedback', subject_id=subject_id, status=st) }}">{{ st }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% if not feedback %}
+    <p>No feedback in this filter.</p>
+  {% else %}
+    {% for f in feedback %}
+      <div class="card">
+        <div class="space-between">
+          <div class="vstack">
+            <strong>{{ f.title }}</strong>
+            <div class="tag">Subject: {{ f.subject_name }} • Teacher: {{ f.teacher_name }}</div>
+          </div>
+          <div class="tag">{{ f.created_at }}</div>
+        </div>
+        <p>{{ f.info }}</p>
+        {% if status == 'pending' %}
+          <div class="actions">
+            <form method="post" action="{{ url_for('routes.admin_approve', feedback_id=f.id) }}" style="display:inline">
+              <button class="btn success" type="submit">Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('routes.admin_reject', feedback_id=f.id) }}" style="display:inline">
+              <button class="btn danger" type="submit">Reject</button>
+            </form>
+          </div>
+        {% else %}
+          <span class="badge">{{ status }}</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+
