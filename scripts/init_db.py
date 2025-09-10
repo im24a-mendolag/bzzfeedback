@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from config import DB_CONFIG
+from config import DB_CONFIG, LOG_DIR
 
 
 def get_mysql_connection_without_db():
@@ -183,6 +183,17 @@ def execute_all_sql_files(path, connection):
 
 
 def main():
+    # Reset logs: ensure directory and truncate/create files
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        for fname in ("info.log", "error.log"):
+            fpath = os.path.join(LOG_DIR, fname)
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write("")
+        print("🧹 Logs cleared in:", LOG_DIR)
+    except Exception as e:
+        print("⚠️ Could not reset logs:", e)
+
     print("🔌 Connecting to MySQL...")
     connection = get_mysql_connection_without_db()
 
