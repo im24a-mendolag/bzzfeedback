@@ -107,10 +107,6 @@ python scripts/seed_demo.py
 # Development server
 python run.py
 
-# Or using Flask CLI
-set FLASK_APP=wsgi:app
-flask run --reload
-```
 
 The application will be available at `http://localhost:5000`
 
