@@ -26,7 +26,7 @@ def main():
     conn = mysql.connector.connect(**cfg)
     try:
         cur = conn.cursor()
-        cur.execute("UPDATE users SET password_hash=%s WHERE email=%s", (password_hash, username))
+        cur.execute("UPDATE users SET password_hash=%s WHERE username=%s", (password_hash, username))
         conn.commit()
         if cur.rowcount == 0:
             print(f"No user found with username '{username}'.")

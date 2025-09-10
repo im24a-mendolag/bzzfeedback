@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="hero">
+  <h2 style="margin:0 0 .4rem 0">Choose your teacher</h2>
+  <div class="muted">Select a teacher to pick a subject and send feedback.</div>
+  <div class="actions" style="margin-top:.9rem">
+    <a class="btn" href="{{ url_for('routes.my_feedback') }}">View my feedback</a>
+  </div>
+  </div>
+
+{% if teachers and teachers|length > 0 %}
+  <div class="row" style="flex-wrap:wrap">
+    {% for t in teachers %}
+      <div class="card" style="min-width:240px;flex:1 1 280px">
+        <div class="space-between">
+          <div class="vstack">
+            <strong>{{ t.username }}</strong>
+            <span class="tag">Teacher</span>
+          </div>
+          <a class="btn primary small" href="{{ url_for('routes.choose_subject', teacher_id=t.id) }}">Choose</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card">
+    <p class="muted" style="margin:0">No teachers found.</p>
+  </div>
+{% endif %}
+
+{% endblock %}
+
+

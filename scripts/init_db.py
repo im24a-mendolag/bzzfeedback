@@ -1,6 +1,7 @@
 import os
 import sys
 import mysql.connector
+from werkzeug.security import generate_password_hash
 
 # Ensure project root is on sys.path for 'config' import when running as a script
 CURRENT_DIR = os.path.dirname(__file__)
@@ -225,6 +226,23 @@ def main():
 
     # Execute all SQL files in correct order
     success = execute_all_sql_files(sql_files_path, db_connection)
+
+    # After schema + seed, set valid werkzeug password hashes for demo users
+    if success:
+        try:
+            cur = db_connection.cursor()
+            demo_users = [
+                ("alice", "Password123!"),
+                ("bob",   "Password123!"),
+            ]
+            for username, plain in demo_users:
+                pw_hash = generate_password_hash(plain)
+                cur.execute("UPDATE users SET password_hash=%s WHERE username=%s", (pw_hash, username))
+            db_connection.commit()
+            cur.close()
+            print("🔐 Set demo passwords for users: alice, bob (Password123!)")
+        except Exception as e:
+            print(f"⚠️ Failed to set demo passwords: {e}")
 
     db_connection.close()
 

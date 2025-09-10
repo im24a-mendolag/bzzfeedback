@@ -14,3 +14,7 @@ DB_CONFIG = {
     'database': os.getenv('MYSQL_DATABASE', 'bzzfeedbackdb'),
 }
 
+# Logging
+LOG_DIR = os.getenv('LOG_DIR', os.path.join(os.path.dirname(__file__), 'logs'))
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+

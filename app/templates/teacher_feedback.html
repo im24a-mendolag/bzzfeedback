@@ -3,18 +3,14 @@
 {% block content %}
   <div class="space-between">
     <h2>Your feedback</h2>
-    {% if show_unread_only %}
-      <span class="badge warn">Unread only</span>
-    {% else %}
-      <span class="badge info">All</span>
-    {% endif %}
-  </div>
-  <div style="margin:.6rem 0">
-    {% if show_unread_only %}
-      <a class="btn small group" href="{{ url_for('routes.teacher_feedback') }}">Show all</a>
-    {% else %}
-      <a class="btn small group" href="{{ url_for('routes.teacher_feedback', unread=1) }}">Show unread only</a>
-    {% endif %}
+    <div class="actions">
+      <a class="btn small" href="{{ url_for('routes.teacher_feedback') }}">Back to subjects</a>
+      {% if show_unread_only %}
+        <a class="btn small group" href="{{ url_for('routes.teacher_feedback', subject_id=subject_id) }}">Show all</a>
+      {% else %}
+        <a class="btn small group" href="{{ url_for('routes.teacher_feedback', subject_id=subject_id, unread=1) }}">Show unread only</a>
+      {% endif %}
+    </div>
   </div>
   {% if not feedback %}
     <p>No feedback yet.</p>

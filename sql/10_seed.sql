@@ -8,13 +8,13 @@ INSERT IGNORE INTO subjects (name) VALUES
 ('History');
 
 -- Default teachers as users (set real password hashes later via app or script)
-INSERT IGNORE INTO users (email, password_hash, display_name, role) VALUES
-('alice', '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'Alice Smith', 'teacher'),
-('bob',   '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'Bob Johnson', 'teacher');
+INSERT IGNORE INTO users (username, password_hash, role) VALUES
+('alice', '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'teacher'),
+('bob',   '$2b$12$R2p8Q9u7l7wJpQw9xQw9xO3cT9K0wQw9xQw9xO3cT9K0wQw9xQw9xO', 'teacher');
 
 -- Ensure teachers table rows exist for these users
 INSERT IGNORE INTO teachers (user_id)
-SELECT u.id FROM users u WHERE u.email IN ('alice', 'bob');
+SELECT u.id FROM users u WHERE u.username IN ('alice', 'bob');
 
 -- Link teachers to subjects
 INSERT IGNORE INTO teacher_subjects (teacher_id, subject_id)
@@ -22,14 +22,14 @@ SELECT t.id, s.id
 FROM teachers t
 JOIN users u ON u.id = t.user_id
 JOIN subjects s ON s.name IN ('Mathematics', 'English', 'Science')
-WHERE u.email = 'alice';
+WHERE u.username = 'alice';
 
 INSERT IGNORE INTO teacher_subjects (teacher_id, subject_id)
 SELECT t.id, s.id
 FROM teachers t
 JOIN users u ON u.id = t.user_id
 JOIN subjects s ON s.name IN ('English', 'History')
-WHERE u.email = 'bob';
+WHERE u.username = 'bob';
 
 -- Global feedback categories (subject_id NULL)
 INSERT IGNORE INTO feedback_categories (subject_id, name) VALUES

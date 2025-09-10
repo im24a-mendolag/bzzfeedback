@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block title %}Your Subjects{% endblock %}
+{% block content %}
+  <h2>Your subjects</h2>
+  {% if not subjects %}
+    <p>No subjects assigned.</p>
+  {% else %}
+    <div class="row" style="flex-wrap:wrap">
+      {% for s in subjects %}
+        <div class="card" style="min-width:260px;flex:1 1 300px">
+          <div class="space-between">
+            <div class="vstack">
+              <strong>{{ s.name }}</strong>
+              <div class="tag">Unread: {{ s.unread_count }} • Read: {{ s.read_count }} • Total: {{ s.total_count }}</div>
+            </div>
+            <a class="btn primary small" href="{{ url_for('routes.teacher_feedback', subject_id=s.id) }}">Open</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+

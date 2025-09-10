@@ -23,9 +23,20 @@ python scripts/init_db.py
 4) Run app (development)
 
 ```bash
+# Option A: simple entry point
+python run.py
+
+# Option B: Flask CLI
 set FLASK_APP=wsgi:app
 flask run --reload
 ```
+
+### Logs
+
+- Files are written to `logs/` (configurable via `LOG_DIR`).
+- `info.log`: general app logs at `LOG_LEVEL` (default INFO).
+- `error.log`: only errors and above.
+- Rotate at ~1 MB, keep 5 backups.
 
 Or via gunicorn (production-like):
 

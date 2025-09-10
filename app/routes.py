@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, request, url_for, flash
+from flask import Blueprint, render_template, redirect, request, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from .auth import verify_login, hash_password
 from .db import query_all, query_one, execute
@@ -14,12 +14,14 @@ def index():
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
+        email = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         user = verify_login(email, password)
         if user:
             login_user(user)
+            current_app.logger.info(f"login success user_id={user.id} username={user.username}")
             return redirect(url_for('routes.dashboard'))
+        current_app.logger.info(f"login failed username={email}")
         flash('Invalid credentials', 'error')
     return render_template('login.html')
 
@@ -27,38 +29,43 @@ def login():
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('email', '').strip()
+        username = request.form.get('username', '').strip()
         display_name = request.form.get('display_name', '').strip()
         password = request.form.get('password', '')
         password2 = request.form.get('password2', '')
         is_teacher = request.form.get('is_teacher') == 'on'
 
-        if not username or not display_name or not password:
+        if not username or not password:
             flash('Please fill all required fields', 'error')
             return render_template('register.html')
+        # display_name deprecated; keep local var for backward compat but do not store
         if password != password2:
             flash('Passwords do not match', 'error')
             return render_template('register.html')
 
-        existing = query_one('SELECT id FROM users WHERE email=%s', (username,))
+        existing = query_one('SELECT id FROM users WHERE username=%s', (username,))
         if existing:
             flash('Username already taken', 'error')
+            current_app.logger.info(f"register duplicate username={username}")
             return render_template('register.html')
 
         role = 'teacher' if is_teacher else 'student'
         user_id = execute(
-            'INSERT INTO users (email, password_hash, display_name, role) VALUES (%s, %s, %s, %s)',
-            (username, hash_password(password), display_name, role),
+            'INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)',
+            (username, hash_password(password), role),
         )
 
         if role == 'teacher':
             execute('INSERT INTO teachers (user_id) VALUES (%s)', (user_id,))
+            current_app.logger.info(f"register teacher user_id={user_id} username={username}")
+        else:
+            current_app.logger.info(f"register student user_id={user_id} username={username}")
 
         # Auto-login after register
-        user_row = query_one('SELECT id, email, display_name, role FROM users WHERE id=%s', (user_id,))
+        user_row = query_one('SELECT id, username, role FROM users WHERE id=%s', (user_id,))
         if user_row:
             from .auth import User  # local import to avoid circular at top
-            login_user(User(user_row['id'], user_row['email'], user_row['display_name'], user_row['role']))
+            login_user(User(user_row['id'], user_row['username'], user_row['role']))
             return redirect(url_for('routes.dashboard'))
 
         flash('Registration complete. Please login.', 'success')
@@ -78,16 +85,18 @@ def logout():
 @login_required
 def dashboard():
     if current_user.role == 'teacher':
+        current_app.logger.info(f"view teacher dashboard user_id={current_user.id}")
         return redirect(url_for('routes.teacher_feedback'))
     # student flow: choose teacher then subject
     teachers = query_all(
         """
-        SELECT t.id, u.display_name
+        SELECT t.id, u.username
         FROM teachers t
         JOIN users u ON u.id = t.user_id
-        ORDER BY u.display_name
+        ORDER BY u.username
         """
     )
+    current_app.logger.info(f"view student dashboard user_id={current_user.id} teachers={len(teachers)}")
     return render_template('student_dashboard.html', teachers=teachers)
 
 
@@ -101,7 +110,7 @@ def my_feedback():
         """
         SELECT f.id, f.title, f.info, f.is_read, f.created_at,
                s.name AS subject_name,
-               u.display_name AS teacher_name,
+               u.username AS teacher_name,
                COALESCE(fc.name, '') AS category_name
         FROM feedback f
         JOIN subjects s ON s.id = f.subject_id
@@ -113,6 +122,7 @@ def my_feedback():
         """,
         (int(current_user.id),),
     )
+    current_app.logger.info(f"view my_feedback user_id={current_user.id} count={len(rows)}")
     return render_template('my_feedback.html', feedback=rows)
 
 
@@ -125,6 +135,7 @@ def delete_feedback(feedback_id: int):
         return redirect(url_for('routes.dashboard'))
     execute('DELETE FROM feedback WHERE id=%s', (feedback_id,))
     flash('Feedback deleted', 'success')
+    current_app.logger.info(f"delete feedback id={feedback_id} by user_id={current_user.id}")
     return redirect(url_for('routes.my_feedback'))
 
 
@@ -144,6 +155,7 @@ def choose_subject(teacher_id: int):
     categories = query_all(
         "SELECT id, name FROM feedback_categories WHERE subject_id IS NULL ORDER BY name"
     )
+    current_app.logger.info(f"choose_subject user_id={current_user.id} teacher_id={teacher_id} subjects={len(subjects)}")
     return render_template('choose_subject.html', teacher_id=teacher_id, subjects=subjects, categories=categories)
 
 
@@ -184,6 +196,7 @@ def submit_feedback():
             (int(current_user.id) if current_user.role == 'student' else None, teacher_id, subject_id, category_id, title, info),
         )
         flash('Feedback submitted', 'success')
+        current_app.logger.info(f"submit_feedback by user_id={current_user.id} teacher_id={teacher_id} subject_id={subject_id} category_id={category_id}")
         return redirect(url_for('routes.dashboard'))
 
     # GET expects teacher_id to prefill subject chooser
@@ -203,8 +216,32 @@ def teacher_feedback():
         return redirect(url_for('routes.dashboard'))
     teacher_id = teacher_row['id']
 
+    subject_id = request.args.get('subject_id')
+
+    # If no subject selected, show subject overview with counts
+    if not subject_id:
+        subjects = query_all(
+            """
+            SELECT s.id, s.name,
+                   COALESCE(SUM(CASE WHEN f.is_read = 0 THEN 1 ELSE 0 END), 0) AS unread_count,
+                   COALESCE(SUM(CASE WHEN f.is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count,
+                   COALESCE(COUNT(f.id), 0) AS total_count
+            FROM teacher_subjects ts
+            JOIN subjects s ON s.id = ts.subject_id
+            LEFT JOIN feedback f ON f.teacher_id = %s AND f.subject_id = s.id
+            WHERE ts.teacher_id = %s
+            GROUP BY s.id, s.name
+            ORDER BY s.name
+            """,
+            (teacher_id, teacher_id),
+        )
+        current_app.logger.info(f"view teacher subjects overview user_id={current_user.id} subjects={len(subjects)}")
+        return render_template('teacher_subjects.html', subjects=subjects)
+
+    # Per-subject feedback list
+    subject_id = int(subject_id)
     show_unread_only = request.args.get('unread') == '1'
-    where_clause = 'WHERE f.teacher_id=%s' + (' AND f.is_read=0' if show_unread_only else '')
+    where_clause = 'WHERE f.teacher_id=%s AND f.subject_id=%s' + (' AND f.is_read=0' if show_unread_only else '')
     rows = query_all(
         f"""
         SELECT f.id, f.title, f.info, f.is_read, f.created_at,
@@ -216,9 +253,10 @@ def teacher_feedback():
         {where_clause}
         ORDER BY f.created_at DESC
         """,
-        (teacher_id,),
+        (teacher_id, subject_id),
     )
-    return render_template('teacher_feedback.html', feedback=rows, show_unread_only=show_unread_only)
+    current_app.logger.info(f"view teacher_feedback user_id={current_user.id} subject_id={subject_id} unread_only={show_unread_only} count={len(rows)}")
+    return render_template('teacher_feedback.html', feedback=rows, show_unread_only=show_unread_only, subject_id=subject_id)
 
 
 @bp.post('/teacher/feedback/<int:feedback_id>/mark-read')
@@ -237,6 +275,7 @@ def mark_feedback_read(feedback_id: int):
         (feedback_id, teacher_id),
     )
     flash('Marked as read', 'success')
+    current_app.logger.info(f"mark_read feedback_id={feedback_id} by teacher_user_id={current_user.id}")
     return redirect(url_for('routes.teacher_feedback'))
 
 
@@ -248,8 +287,8 @@ def feedback_thread(feedback_id: int):
         """
         SELECT f.id, f.student_id, f.teacher_id, f.title, f.info,
                s.name AS subject_name,
-               u_t.display_name AS teacher_name,
-               u_s.display_name AS student_name
+               u_t.username AS teacher_name,
+               u_s.username AS student_name
         FROM feedback f
         JOIN subjects s ON s.id = f.subject_id
         JOIN teachers t ON t.id = f.teacher_id
@@ -282,12 +321,13 @@ def feedback_thread(feedback_id: int):
                 'INSERT INTO feedback_messages (feedback_id, sender_user_id, message) VALUES (%s, %s, %s)',
                 (feedback_id, int(current_user.id), message),
             )
+            current_app.logger.info(f"thread message feedback_id={feedback_id} by user_id={current_user.id}")
             return redirect(url_for('routes.feedback_thread', feedback_id=feedback_id))
 
     messages = query_all(
         """
         SELECT fm.id, fm.message, fm.created_at,
-               CASE WHEN u.role = 'teacher' THEN CONCAT(u.display_name, ' (Teacher)') ELSE 'Student' END AS sender_name
+               CASE WHEN u.role = 'teacher' THEN CONCAT(u.username, ' (Teacher)') ELSE 'Student' END AS sender_name
         FROM feedback_messages fm
         JOIN users u ON u.id = fm.sender_user_id
         WHERE fm.feedback_id=%s
