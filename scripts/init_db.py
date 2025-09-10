@@ -183,6 +183,7 @@ def execute_all_sql_files(path, connection):
 
 
 def main():
+    db_name = os.getenv('DB_NAME', DB_CONFIG.get('database', 'bzzfeedbackdb'))
     # Reset logs: ensure directory and truncate/create files
     try:
         os.makedirs(LOG_DIR, exist_ok=True)
@@ -201,32 +202,32 @@ def main():
         print("❌ Cannot proceed without MySQL connection")
         return
 
-    print("🧨 Dropping and recreating database...")
+    print("🧨 Dropping and recreating database...", db_name)
 
     # Drop database if exists
-    if not execute_change_query_with_connection(connection, "DROP DATABASE IF EXISTS bzzfeedbackdb"):
+    if not execute_change_query_with_connection(connection, f"DROP DATABASE IF EXISTS {db_name}"):
         print("❌ Failed to drop database")
         connection.close()
         return
 
     # Create database
-    if not execute_change_query_with_connection(connection, "CREATE DATABASE bzzfeedbackdb"):
+    if not execute_change_query_with_connection(connection, f"CREATE DATABASE {db_name}"):
         print("❌ Failed to create database")
         connection.close()
         return
 
-    print("✅ Database 'bzzfeedbackdb' created successfully!")
+    print(f"✅ Database '{db_name}' created successfully!")
 
     # Close the connection without database
     connection.close()
 
     # Now connect to the specific database
-    print("🔌 Connecting to bzzfeedbackdb...")
+    print(f"🔌 Connecting to {db_name}...")
     try:
         cfg = DB_CONFIG.copy()
-        cfg['database'] = 'bzzfeedbackdb'
+        cfg['database'] = db_name
         db_connection = mysql.connector.connect(**cfg)
-        print("✅ Connected to bzzfeedbackdb successfully!")
+        print(f"✅ Connected to {db_name} successfully!")
     except Exception as e:
         print(f"❌ Failed to connect to bzzfeedbackdb: {str(e)}")
         return

@@ -38,11 +38,28 @@ flask run --reload
 - `error.log`: only errors and above.
 - Rotate at ~1 MB, keep 5 backups.
 
-Or via gunicorn (production-like):
+### Tests
+
+Install test deps (already listed in requirements.txt):
 
 ```bash
-gunicorn -w 2 -b 0.0.0.0:8000 wsgi:app
+pip install -r requirements.txt
 ```
+
+Run tests:
+
+```bash
+pytest -q
+```
+
+### Demo data
+
+Populate the database with lots of sample feedback to visualize lists and counts:
+
+```bash
+python scripts/seed_demo.py
+```
+
 
 ### Reset/set a user's password
 

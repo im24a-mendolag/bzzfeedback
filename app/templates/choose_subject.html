@@ -11,9 +11,8 @@
         {% endfor %}
       </select>
     </label>
-    <label>Category (optional)
-      <select name="category_id" id="category_id">
-        <option value="">-- none --</option>
+    <label>Category
+      <select name="category_id" id="category_id" required>
         {% for c in categories %}
           <option value="{{ c.id }}">{{ c.name }}</option>
         {% endfor %}
@@ -21,7 +20,7 @@
       </select>
     </label>
     <div id="custom_category_wrap" style="display:none">
-      <label>Or write your own category
+      <label>Or write your own category (required)
         <input type="text" name="custom_category" id="custom_category" placeholder="e.g., Homework clarity" />
       </label>
     </div>
@@ -38,10 +37,12 @@
       const select = document.getElementById('category_id');
       const wrap = document.getElementById('custom_category_wrap');
       function toggle(){
-        wrap.style.display = (select.value === '__custom__') ? 'block' : 'none';
-        if (select.value !== '__custom__') {
-          const input = document.getElementById('custom_category');
-          if (input) input.value = '';
+        const isCustom = (select.value === '__custom__');
+        wrap.style.display = isCustom ? 'block' : 'none';
+        const input = document.getElementById('custom_category');
+        if (input) {
+          input.required = isCustom;
+          if (!isCustom) input.value = '';
         }
       }
       select.addEventListener('change', toggle);

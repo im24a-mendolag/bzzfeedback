@@ -26,7 +26,7 @@
         </div>
         <p>{{ f.info }}</p>
         {% if not f.is_read %}
-          <form method="post" action="{{ url_for('routes.mark_feedback_read', feedback_id=f.id) }}">
+          <form method="post" action="{{ url_for('routes.mark_feedback_read', feedback_id=f.id, subject_id=subject_id, unread=(1 if show_unread_only else None)) }}">
             <button class="btn success" type="submit">Mark as read</button>
           </form>
         {% else %}

@@ -170,23 +170,29 @@ def submit_feedback():
         title = request.form.get('title', '').strip()
         info = request.form.get('info', '').strip()
 
-        if custom_category:
-            # upsert category for this subject
-            existing = query_one(
-                "SELECT id FROM feedback_categories WHERE subject_id=%s AND name=%s",
-                (subject_id, custom_category),
-            )
-            if existing:
-                category_id = existing['id']
-            else:
-                category_id = execute(
-                    "INSERT INTO feedback_categories (subject_id, name) VALUES (%s, %s)",
+        # Determine category id based on selection (required)
+        if category_id == '__custom__':
+            if custom_category:
+                # upsert category for this subject
+                existing = query_one(
+                    "SELECT id FROM feedback_categories WHERE subject_id=%s AND name=%s",
                     (subject_id, custom_category),
                 )
+                if existing:
+                    category_id = existing['id']
+                else:
+                    category_id = execute(
+                        "INSERT INTO feedback_categories (subject_id, name) VALUES (%s, %s)",
+                        (subject_id, custom_category),
+                    )
+            else:
+                flash('Please provide a custom category name', 'error')
+                return redirect(url_for('routes.choose_subject', teacher_id=teacher_id))
         elif category_id:
             category_id = int(category_id)
         else:
-            category_id = None
+            flash('Please choose a category', 'error')
+            return redirect(url_for('routes.choose_subject', teacher_id=teacher_id))
 
         execute(
             """
@@ -276,6 +282,11 @@ def mark_feedback_read(feedback_id: int):
     )
     flash('Marked as read', 'success')
     current_app.logger.info(f"mark_read feedback_id={feedback_id} by teacher_user_id={current_user.id}")
+    # Redirect back to current subject/filter if provided, else overview
+    subject_id = request.args.get('subject_id')
+    unread = request.args.get('unread')
+    if subject_id:
+        return redirect(url_for('routes.teacher_feedback', subject_id=int(subject_id), unread=unread))
     return redirect(url_for('routes.teacher_feedback'))
 
 
