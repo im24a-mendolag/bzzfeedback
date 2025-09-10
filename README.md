@@ -14,6 +14,13 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `.env` and set values for MySQL and `FLASK_SECRET_KEY`.
 
+FLASK_SECRET_KEY=secret_key
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=password
+MYSQL_DATABASE=bzzfeedbackdb
+
 3) Initialize database (drops and recreates `bzzfeedbackdb`)
 
 ```bash
