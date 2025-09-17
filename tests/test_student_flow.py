@@ -1,3 +1,4 @@
+import pytest
 from .conftest import login
 
 
@@ -11,16 +12,38 @@ def test_student_dashboard_and_submit_feedback(client):
     assert resp.status_code == 200
     assert b'Choose your teacher' in resp.data
 
-    # Grab first teacher link from dashboard page
-    # For simplicity, directly navigate to choose-subject for teacher_id=1
-    resp = client.get('/choose-subject/1')
+    # Get the first available teacher ID from the database
+    from app.db import query_one
+    teacher = query_one("SELECT id FROM teachers LIMIT 1")
+    if not teacher:
+        # If no teachers exist, skip this test
+        pytest.skip("No teachers available for testing")
+    
+    teacher_id = teacher['id']
+    
+    # Navigate to choose-subject for the available teacher
+    resp = client.get(f'/choose-subject/{teacher_id}')
     assert resp.status_code == 200
     assert b'Choose a subject' in resp.data
 
+    # Get the first available subject for this teacher
+    subject = query_one("""
+        SELECT s.id FROM subjects s 
+        JOIN teacher_subjects ts ON ts.subject_id = s.id 
+        WHERE ts.teacher_id = %s 
+        LIMIT 1
+    """, (teacher_id,))
+    
+    if not subject:
+        # If no subjects assigned to teacher, skip this test
+        pytest.skip("No subjects assigned to teacher for testing")
+    
+    subject_id = subject['id']
+
     # Submit feedback with custom category (required)
     resp = client.post('/submit-feedback', data={
-        'teacher_id': '1',
-        'subject_id': '1',
+        'teacher_id': str(teacher_id),
+        'subject_id': str(subject_id),
         'category_id': '__custom__',
         'custom_category': 'TestCat',
         'title': 'Test Title',

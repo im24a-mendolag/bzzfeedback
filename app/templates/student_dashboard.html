@@ -2,17 +2,17 @@
 
 {% block content %}
 <div class="hero">
-  <h2 style="margin:0 0 .4rem 0">Choose your teacher</h2>
+  <h2 class="mb-2">Choose your teacher</h2>
   <div class="muted">Select a teacher to pick a subject and send feedback.</div>
-  <div class="actions" style="margin-top:.9rem">
+  <div class="actions mt-3">
     <a class="btn" href="{{ url_for('routes.my_feedback') }}">View my feedback</a>
   </div>
   </div>
 
 {% if teachers and teachers|length > 0 %}
-  <div class="row" style="flex-wrap:wrap">
+  <div class="row flex-wrap">
     {% for t in teachers %}
-      <div class="card" style="min-width:240px;flex:1 1 280px">
+      <div class="card card-teacher">
         <div class="space-between">
           <div class="vstack">
             <strong>{{ t.username }}</strong>
@@ -25,7 +25,7 @@
   </div>
 {% else %}
   <div class="card">
-    <p class="muted" style="margin:0">No teachers found.</p>
+    <p class="muted m-0">No teachers found.</p>
   </div>
 {% endif %}
 

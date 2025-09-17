@@ -26,9 +26,9 @@
             <span class="badge warn">Unread</span>
           {% endif %}
         {% endif %}
-        <div style="margin-top:.5rem">
+        <div class="mt-2">
           <a class="btn small" href="{{ url_for('routes.feedback_thread', feedback_id=f.id) }}">Open thread</a>
-          <form method="post" action="{{ url_for('routes.delete_feedback', feedback_id=f.id) }}" style="display:inline" onsubmit="return confirm('Delete this feedback?');">
+          <form method="post" action="{{ url_for('routes.delete_feedback', feedback_id=f.id) }}" class="inline" onsubmit="return confirm('Delete this feedback?');">
             <button class="btn danger small" type="submit">Delete</button>
           </form>
         </div>

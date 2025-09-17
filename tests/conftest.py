@@ -23,6 +23,22 @@ from scripts.init_db import main as init_db_main
 def app():
     # Initialize a clean test database
     init_db_main()
+    
+    # Set passwords for all test users
+    from app.db import execute
+    from werkzeug.security import generate_password_hash
+    
+    # Set admin password
+    admin_hash = generate_password_hash("admin")
+    execute("UPDATE users SET password_hash=%s WHERE username='admin'", (admin_hash,))
+    
+    # Set alice and bob passwords (init_db should have done this, but ensure it's done)
+    alice_hash = generate_password_hash("Password123!")
+    execute("UPDATE users SET password_hash=%s WHERE username='alice'", (alice_hash,))
+    
+    bob_hash = generate_password_hash("Password123!")
+    execute("UPDATE users SET password_hash=%s WHERE username='bob'", (bob_hash,))
+    
     app = create_app()
     app.config.update(
         TESTING=True,
@@ -32,7 +48,22 @@ def app():
 
 @pytest.fixture()
 def client(app):
-    return app.test_client()
+    # Ensure passwords are set before creating client
+    from app.db import execute
+    from werkzeug.security import generate_password_hash
+    
+    # Set passwords for all test users
+    admin_hash = generate_password_hash("admin")
+    execute("UPDATE users SET password_hash=%s WHERE username='admin'", (admin_hash,))
+    
+    alice_hash = generate_password_hash("Password123!")
+    execute("UPDATE users SET password_hash=%s WHERE username='alice'", (alice_hash,))
+    
+    bob_hash = generate_password_hash("Password123!")
+    execute("UPDATE users SET password_hash=%s WHERE username='bob'", (bob_hash,))
+    
+    client = app.test_client()
+    return client
 
 
 def login(client, username: str, password: str):

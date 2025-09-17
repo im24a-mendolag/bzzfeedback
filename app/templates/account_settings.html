@@ -1,0 +1,203 @@
+{% extends 'layout.html' %}
+{% block title %}Account Settings{% endblock %}
+{% block content %}
+  <div class="space-between">
+    <h2>Account Settings</h2>
+    <div class="actions">
+      <a class="btn small" href="{{ url_for('routes.dashboard') }}">Back to Dashboard</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Change Username -->
+    <div class="card" style="flex: 1; margin-right: 1rem;">
+      <h3>Change Username</h3>
+      <div class="vstack">
+        <label>
+          Current Username
+          <input type="text" value="{{ user.username }}" disabled style="background: #f8fafc; color: #64748b;">
+        </label>
+        <label>
+          New Username
+          <input type="text" id="new-username" placeholder="Enter new username">
+        </label>
+        <button class="btn primary" onclick="showPasswordModal('username')">Update Username</button>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="card" style="flex: 1; margin-right: 1rem;">
+      <h3>Change Password</h3>
+      <div class="vstack">
+        <label>
+          New Password
+          <input type="password" id="new-password" placeholder="Enter new password (min 8 characters)">
+        </label>
+        <label>
+          Confirm New Password
+          <input type="password" id="confirm-password" placeholder="Confirm new password">
+        </label>
+        <button class="btn primary" onclick="showPasswordModal('password')">Update Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account -->
+  <div class="card" style="margin-top: 1rem; border-left: 4px solid var(--danger);">
+    <h3 style="color: var(--danger);">Danger Zone</h3>
+    <p style="color: var(--muted); margin-bottom: 1rem;">
+      Deleting your account will permanently remove all your data including feedback, messages, and profile information. This action cannot be undone.
+    </p>
+    <button class="btn danger" onclick="showPasswordModal('delete')">Delete Account</button>
+  </div>
+
+  <!-- Password Verification Modal -->
+  <div id="passwordModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Confirm Password</h3>
+        <span class="close" onclick="closePasswordModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Please enter your current password to confirm this action.</p>
+        <form id="passwordForm" method="post">
+          <div class="vstack">
+            <label>
+              Current Password
+              <input type="password" id="modalPassword" required placeholder="Enter your current password">
+            </label>
+            <div class="actions">
+              <button type="button" class="btn" onclick="closePasswordModal()">Cancel</button>
+              <button type="submit" class="btn primary" id="modalSubmit">Confirm</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentAction = '';
+
+    function showPasswordModal(action) {
+      currentAction = action;
+      const modal = document.getElementById('passwordModal');
+      const title = document.getElementById('modalTitle');
+      const message = document.getElementById('modalMessage');
+      const submitBtn = document.getElementById('modalSubmit');
+      const form = document.getElementById('passwordForm');
+      
+      // Validate form data before showing modal
+      if (action === 'username') {
+        const newUsername = document.getElementById('new-username').value.trim();
+        if (!newUsername) {
+          alert('Please enter a new username');
+          return;
+        }
+      } else if (action === 'password') {
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        if (!newPassword || !confirmPassword) {
+          alert('Please fill in all password fields');
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          alert('New passwords do not match');
+          return;
+        }
+        if (newPassword.length < 8) {
+          alert('New password must be at least 8 characters long');
+          return;
+        }
+      }
+      
+      // Set modal content based on action
+      if (action === 'username') {
+        title.textContent = 'Confirm Username Change';
+        message.textContent = 'Please enter your current password to change your username.';
+        submitBtn.textContent = 'Change Username';
+        form.action = '{{ url_for("routes.change_username") }}';
+      } else if (action === 'password') {
+        title.textContent = 'Confirm Password Change';
+        message.textContent = 'Please enter your current password to change your password.';
+        submitBtn.textContent = 'Change Password';
+        form.action = '{{ url_for("routes.change_password") }}';
+      } else if (action === 'delete') {
+        title.textContent = 'Confirm Account Deletion';
+        message.textContent = 'Please enter your current password to delete your account. This action cannot be undone.';
+        submitBtn.textContent = 'Delete Account';
+        submitBtn.className = 'btn danger';
+        form.action = '{{ url_for("routes.delete_account") }}';
+      }
+      
+      modal.style.display = 'flex';
+      document.getElementById('modalPassword').focus();
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+      document.getElementById('modalPassword').value = '';
+      currentAction = '';
+    }
+
+    // Handle form submission
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+      const password = document.getElementById('modalPassword').value;
+      if (!password) {
+        e.preventDefault();
+        alert('Please enter your password');
+        return;
+      }
+      
+      // Add form data based on action
+      if (currentAction === 'username') {
+        const newUsername = document.getElementById('new-username').value.trim();
+        const usernameInput = document.createElement('input');
+        usernameInput.type = 'hidden';
+        usernameInput.name = 'username';
+        usernameInput.value = newUsername;
+        this.appendChild(usernameInput);
+      } else if (currentAction === 'password') {
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        const newPasswordInput = document.createElement('input');
+        newPasswordInput.type = 'hidden';
+        newPasswordInput.name = 'new_password';
+        newPasswordInput.value = newPassword;
+        this.appendChild(newPasswordInput);
+        
+        const confirmPasswordInput = document.createElement('input');
+        confirmPasswordInput.type = 'hidden';
+        confirmPasswordInput.name = 'confirm_password';
+        confirmPasswordInput.value = confirmPassword;
+        this.appendChild(confirmPasswordInput);
+      }
+      
+      // Rename password field based on action
+      const passwordInput = document.getElementById('modalPassword');
+      if (currentAction === 'password') {
+        passwordInput.name = 'current_password';
+      } else if (currentAction === 'delete') {
+        passwordInput.name = 'password';
+      } else {
+        passwordInput.name = 'password';
+      }
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+      const modal = document.getElementById('passwordModal');
+      if (e.target === modal) {
+        closePasswordModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closePasswordModal();
+      }
+    });
+  </script>
+{% endblock %}

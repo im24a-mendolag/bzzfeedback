@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+{% block title %}Admin - Users{% endblock %}
+{% block content %}
+  <div class="space-between">
+    <h2>User Management</h2>
+    <div class="actions">
+      <a class="btn small" href="{{ url_for('routes.admin_feedback') }}">Feedback</a>
+      <a class="btn small primary" href="{{ url_for('routes.admin_users') }}">Users</a>
+    </div>
+  </div>
+  
+  {% if not users %}
+    <p>No users found.</p>
+  {% else %}
+    <div class="card">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th style="text-align: left; padding: 0.75rem 0.5rem;">Username</th>
+            <th style="text-align: left; padding: 0.75rem 0.5rem;">Role</th>
+            <th style="text-align: left; padding: 0.75rem 0.5rem;">Subjects</th>
+            <th style="text-align: left; padding: 0.75rem 0.5rem;">Created</th>
+            <th style="text-align: left; padding: 0.75rem 0.5rem;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 0.75rem 0.5rem;">
+                <strong>{{ user.username }}</strong>
+              </td>
+              <td style="padding: 0.75rem 0.5rem;">
+                <span class="badge {{ user.role }}">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td style="padding: 0.75rem 0.5rem;">
+                {% if user.subjects %}
+                  <span class="tag">{{ user.subjects }}</span>
+                {% else %}
+                  <span class="muted">No subjects</span>
+                {% endif %}
+              </td>
+              <td style="padding: 0.75rem 0.5rem;">
+                <span class="tag">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</span>
+              </td>
+              <td style="padding: 0.75rem 0.5rem;">
+                <div class="actions">
+                  <!-- Role change dropdown -->
+                  <form class="inline" method="post" action="{{ url_for('routes.admin_promote_user', user_id=user.id) }}">
+                    <select name="role" onchange="this.form.submit()" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border);">
+                      <option value="student" {% if user.role == 'student' %}selected{% endif %}>Student</option>
+                      <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Teacher</option>
+                      <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                    </select>
+                  </form>
+                  
+                  <!-- Manage subjects (only for teachers) -->
+                  {% if user.role == 'teacher' and user.is_teacher %}
+                    <a class="btn small" href="{{ url_for('routes.admin_teacher_subjects', teacher_id=user.id) }}">Subjects</a>
+                  {% endif %}
+                  
+                  <!-- Delete user -->
+                  {% if user.id != current_user.id %}
+                    <form class="inline" method="post" action="{{ url_for('routes.admin_delete_user', user_id=user.id) }}" 
+                          onsubmit="return confirm('Are you sure you want to delete user {{ user.username }}? This action cannot be undone.');">
+                      <button class="btn danger small" type="submit">Delete</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

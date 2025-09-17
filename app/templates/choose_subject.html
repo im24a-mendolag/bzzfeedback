@@ -19,7 +19,7 @@
         <option value="__custom__">Other (write your own)</option>
       </select>
     </label>
-    <div id="custom_category_wrap" style="display:none">
+    <div id="custom_category_wrap" class="hidden">
       <label>Or write your own category (required)
         <input type="text" name="custom_category" id="custom_category" placeholder="e.g., Homework clarity" />
       </label>
@@ -32,22 +32,6 @@
     </label>
     <button class="btn primary" type="submit">Send feedback</button>
   </form>
-  <script>
-    (function(){
-      const select = document.getElementById('category_id');
-      const wrap = document.getElementById('custom_category_wrap');
-      function toggle(){
-        const isCustom = (select.value === '__custom__');
-        wrap.style.display = isCustom ? 'block' : 'none';
-        const input = document.getElementById('custom_category');
-        if (input) {
-          input.required = isCustom;
-          if (!isCustom) input.value = '';
-        }
-      }
-      select.addEventListener('change', toggle);
-      toggle();
-    })();
-  </script>
+  <script src="{{ url_for('static', filename='js/choose_subject.js') }}"></script>
 {% endblock %}
 

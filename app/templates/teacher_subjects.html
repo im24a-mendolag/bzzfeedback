@@ -5,9 +5,9 @@
   {% if not subjects %}
     <p>No subjects assigned.</p>
   {% else %}
-    <div class="row" style="flex-wrap:wrap">
+    <div class="row flex-wrap">
       {% for s in subjects %}
-        <div class="card" style="min-width:260px;flex:1 1 300px">
+        <div class="card card-subject">
           <div class="space-between">
             <div class="vstack">
               <strong>{{ s.name }}</strong>

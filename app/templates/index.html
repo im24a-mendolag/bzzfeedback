@@ -2,8 +2,8 @@
 {% block title %}Home - BZZ Feedback{% endblock %}
 {% block content %}
   <div class="hero">
-    <h1 style="margin:.2rem 0 0 0">Welcome to BZZ Feedback</h1>
-    <p class="muted" style="margin:.3rem 0 0 0">Give anonymous, constructive feedback to your teachers.</p>
+    <h1 class="m-0">Welcome to BZZ Feedback</h1>
+    <p class="muted m-0">Give anonymous, constructive feedback to your teachers.</p>
     <div class="actions">
       {% if current_user.is_authenticated %}
         <a class="btn primary" href="{{ url_for('routes.dashboard') }}">Go to dashboard</a>

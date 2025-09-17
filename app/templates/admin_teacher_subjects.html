@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+{% block title %}Admin - Teacher Subjects{% endblock %}
+{% block content %}
+  <div class="space-between">
+    <h2>Manage Subjects for {{ teacher.username }}</h2>
+    <div class="actions">
+      <a class="btn small" href="{{ url_for('routes.admin_users') }}">Back to Users</a>
+    </div>
+  </div>
+  
+  <div class="row">
+    <!-- Current Subjects -->
+    <div class="card" style="flex: 1; margin-right: 1rem;">
+      <h3>Current Subjects</h3>
+      {% if not current_subjects %}
+        <p class="muted">No subjects assigned</p>
+      {% else %}
+        <div class="vstack">
+          {% for subject in current_subjects %}
+            <div class="space-between" style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 8px;">
+              <span>{{ subject.name }}</span>
+              <form class="inline" method="post" action="{{ url_for('routes.admin_remove_teacher_subject', teacher_id=teacher.id, subject_id=subject.id) }}"
+                    onsubmit="return confirm('Remove {{ subject.name }} from {{ teacher.username }}?');">
+                <button class="btn danger small" type="submit">Remove</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Add New Subject -->
+    <div class="card" style="flex: 1;">
+      <h3>Add Subject</h3>
+      {% if not all_subjects %}
+        <p class="muted">No subjects available</p>
+      {% else %}
+        <form method="post" action="{{ url_for('routes.admin_add_teacher_subject', teacher_id=teacher.id) }}">
+          <div class="vstack">
+            <label>
+              <select name="subject_id" required style="width: 100%;">
+                <option value="">Choose a subject...</option>
+                {% for subject in all_subjects %}
+                  {% set is_assigned = current_subjects | selectattr('id', 'equalto', subject.id) | list | length > 0 %}
+                  {% if not is_assigned %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </label>
+            <button class="btn success" type="submit">Add Subject</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

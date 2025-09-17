@@ -7,7 +7,7 @@ def test_admin_moderation_flow(client):
     from app.db import execute
     execute("UPDATE users SET role='admin' WHERE username='alice'")
 
-    # Login as admin
+    # Login as alice (now admin)
     resp = login(client, 'alice', 'Password123!')
     assert resp.status_code == 200
 

@@ -24,18 +24,29 @@
           <div class="tag">{{ f.created_at }}</div>
         </div>
         <p>{{ f.info }}</p>
-        {% if status == 'pending' %}
-          <div class="actions">
-            <form method="post" action="{{ url_for('routes.admin_approve', feedback_id=f.id) }}" style="display:inline">
+        <div class="actions">
+          <span class="badge {{ f.moderation_status }}">{{ f.moderation_status }}</span>
+          {% if f.moderation_status == 'pending' %}
+            <form method="post" action="{{ url_for('routes.admin_change_status', feedback_id=f.id) }}" class="inline">
+              <input type="hidden" name="status" value="approved">
               <button class="btn success" type="submit">Approve</button>
             </form>
-            <form method="post" action="{{ url_for('routes.admin_reject', feedback_id=f.id) }}" style="display:inline">
+            <form method="post" action="{{ url_for('routes.admin_change_status', feedback_id=f.id) }}" class="inline">
+              <input type="hidden" name="status" value="rejected">
               <button class="btn danger" type="submit">Reject</button>
             </form>
-          </div>
-        {% else %}
-          <span class="badge">{{ status }}</span>
-        {% endif %}
+          {% elif f.moderation_status == 'approved' %}
+            <form method="post" action="{{ url_for('routes.admin_change_status', feedback_id=f.id) }}" class="inline">
+              <input type="hidden" name="status" value="rejected">
+              <button class="btn danger" type="submit">Reject</button>
+            </form>
+          {% elif f.moderation_status == 'rejected' %}
+            <form method="post" action="{{ url_for('routes.admin_change_status', feedback_id=f.id) }}" class="inline">
+              <input type="hidden" name="status" value="approved">
+              <button class="btn success" type="submit">Approve</button>
+            </form>
+          {% endif %}
+        </div>
       </div>
     {% endfor %}
   {% endif %}

@@ -327,6 +327,291 @@ def admin_reject(feedback_id: int):
     return redirect(request.referrer or url_for('routes.admin_feedback'))
 
 
+@bp.post('/admin/feedback/<int:feedback_id>/change-status')
+@login_required
+def admin_change_status(feedback_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    new_status = request.form.get('status')
+    if new_status not in ['pending', 'approved', 'rejected']:
+        flash('Invalid status', 'error')
+        return redirect(request.referrer or url_for('routes.admin_feedback'))
+    
+    execute("UPDATE feedback SET moderation_status=%s WHERE id=%s", (new_status, feedback_id))
+    flash(f'Feedback status changed to {new_status}', 'success')
+    return redirect(request.referrer or url_for('routes.admin_feedback'))
+
+
+@bp.get('/admin/users')
+@login_required
+def admin_users():
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    users = query_all(
+        """
+        SELECT u.id, u.username, u.role, u.created_at,
+               CASE WHEN t.id IS NOT NULL THEN 1 ELSE 0 END as is_teacher,
+               GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ') as subjects
+        FROM users u
+        LEFT JOIN teachers t ON t.user_id = u.id
+        LEFT JOIN teacher_subjects ts ON ts.teacher_id = t.id
+        LEFT JOIN subjects s ON s.id = ts.subject_id
+        GROUP BY u.id, u.username, u.role, u.created_at, t.id
+        ORDER BY u.created_at DESC
+        """
+    )
+    return render_template('admin_users.html', users=users)
+
+
+@bp.post('/admin/users/<int:user_id>/delete')
+@login_required
+def admin_delete_user(user_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    if user_id == current_user.id:
+        flash('Cannot delete your own account', 'error')
+        return redirect(url_for('routes.admin_users'))
+    
+    user = query_one("SELECT username, role FROM users WHERE id=%s", (user_id,))
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('routes.admin_users'))
+    
+    execute("DELETE FROM users WHERE id=%s", (user_id,))
+    flash(f'User {user["username"]} has been deleted', 'success')
+    return redirect(url_for('routes.admin_users'))
+
+
+@bp.post('/admin/users/<int:user_id>/promote')
+@login_required
+def admin_promote_user(user_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    new_role = request.form.get('role')
+    if new_role not in ['student', 'teacher', 'admin']:
+        flash('Invalid role', 'error')
+        return redirect(url_for('routes.admin_users'))
+    
+    user = query_one("SELECT username, role FROM users WHERE id=%s", (user_id,))
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('routes.admin_users'))
+    
+    # Update user role
+    execute("UPDATE users SET role=%s WHERE id=%s", (new_role, user_id))
+    
+    # If promoting to teacher, ensure teacher record exists
+    if new_role == 'teacher':
+        teacher_exists = query_one("SELECT id FROM teachers WHERE user_id=%s", (user_id,))
+        if not teacher_exists:
+            execute("INSERT INTO teachers (user_id) VALUES (%s)", (user_id,))
+    
+    flash(f'User {user["username"]} role changed to {new_role}', 'success')
+    return redirect(url_for('routes.admin_users'))
+
+
+@bp.get('/admin/teachers/<int:teacher_id>/subjects')
+@login_required
+def admin_teacher_subjects(teacher_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    teacher = query_one(
+        """
+        SELECT t.id, u.username
+        FROM teachers t
+        JOIN users u ON u.id = t.user_id
+        WHERE t.id = %s
+        """,
+        (teacher_id,)
+    )
+    
+    if not teacher:
+        flash('Teacher not found', 'error')
+        return redirect(url_for('routes.admin_users'))
+    
+    # Get current subjects
+    current_subjects = query_all(
+        """
+        SELECT s.id, s.name
+        FROM subjects s
+        JOIN teacher_subjects ts ON ts.subject_id = s.id
+        WHERE ts.teacher_id = %s
+        ORDER BY s.name
+        """,
+        (teacher_id,)
+    )
+    
+    # Get all available subjects
+    all_subjects = query_all(
+        """
+        SELECT s.id, s.name
+        FROM subjects s
+        ORDER BY s.name
+        """
+    )
+    
+    return render_template('admin_teacher_subjects.html', 
+                         teacher=teacher, 
+                         current_subjects=current_subjects, 
+                         all_subjects=all_subjects)
+
+
+@bp.post('/admin/teachers/<int:teacher_id>/subjects/add')
+@login_required
+def admin_add_teacher_subject(teacher_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    subject_id = request.form.get('subject_id')
+    if not subject_id:
+        flash('Subject not specified', 'error')
+        return redirect(url_for('routes.admin_teacher_subjects', teacher_id=teacher_id))
+    
+    # Check if relationship already exists
+    exists = query_one(
+        "SELECT id FROM teacher_subjects WHERE teacher_id=%s AND subject_id=%s",
+        (teacher_id, subject_id)
+    )
+    
+    if exists:
+        flash('Teacher already assigned to this subject', 'error')
+    else:
+        execute(
+            "INSERT INTO teacher_subjects (teacher_id, subject_id) VALUES (%s, %s)",
+            (teacher_id, subject_id)
+        )
+        subject = query_one("SELECT name FROM subjects WHERE id=%s", (subject_id,))
+        flash(f'Added {subject["name"]} to teacher', 'success')
+    
+    return redirect(url_for('routes.admin_teacher_subjects', teacher_id=teacher_id))
+
+
+@bp.post('/admin/teachers/<int:teacher_id>/subjects/<int:subject_id>/remove')
+@login_required
+def admin_remove_teacher_subject(teacher_id: int, subject_id: int):
+    if current_user.role != 'admin':
+        return redirect(url_for('routes.dashboard'))
+    
+    subject = query_one("SELECT name FROM subjects WHERE id=%s", (subject_id,))
+    execute(
+        "DELETE FROM teacher_subjects WHERE teacher_id=%s AND subject_id=%s",
+        (teacher_id, subject_id)
+    )
+    flash(f'Removed {subject["name"]} from teacher', 'success')
+    
+    return redirect(url_for('routes.admin_teacher_subjects', teacher_id=teacher_id))
+
+
+@bp.get('/account')
+@login_required
+def account_settings():
+    user = query_one("SELECT username, role FROM users WHERE id=%s", (current_user.id,))
+    return render_template('account_settings.html', user=user)
+
+
+@bp.post('/account/change-username')
+@login_required
+def change_username():
+    new_username = request.form.get('username', '').strip()
+    password = request.form.get('password', '')
+    
+    if not new_username:
+        flash('Username is required', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    if not password:
+        flash('Current password is required', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Verify current password
+    if not verify_login(current_user.username, password):
+        flash('Incorrect password', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Check if username already exists
+    existing = query_one("SELECT id FROM users WHERE username=%s AND id!=%s", (new_username, current_user.id))
+    if existing:
+        flash('Username already taken', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Update username
+    execute("UPDATE users SET username=%s WHERE id=%s", (new_username, current_user.id))
+    
+    # Update current user object
+    current_user.username = new_username
+    
+    flash('Username updated successfully', 'success')
+    return redirect(url_for('routes.account_settings'))
+
+
+@bp.post('/account/change-password')
+@login_required
+def change_password():
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+    
+    if not all([current_password, new_password, confirm_password]):
+        flash('All password fields are required', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    if new_password != confirm_password:
+        flash('New passwords do not match', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    if len(new_password) < 8:
+        flash('New password must be at least 8 characters long', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Verify current password
+    if not verify_login(current_user.username, current_password):
+        flash('Current password is incorrect', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Hash new password
+    from werkzeug.security import generate_password_hash
+    new_password_hash = generate_password_hash(new_password)
+    
+    # Update password
+    execute("UPDATE users SET password_hash=%s WHERE id=%s", (new_password_hash, current_user.id))
+    
+    flash('Password updated successfully', 'success')
+    return redirect(url_for('routes.account_settings'))
+
+
+@bp.post('/account/delete')
+@login_required
+def delete_account():
+    password = request.form.get('password', '')
+    
+    if not password:
+        flash('Password is required to delete account', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Verify current password
+    if not verify_login(current_user.username, password):
+        flash('Incorrect password', 'error')
+        return redirect(url_for('routes.account_settings'))
+    
+    # Get user info for flash message
+    user = query_one("SELECT username FROM users WHERE id=%s", (current_user.id,))
+    username = user['username']
+    
+    # Delete user (cascades will handle related records)
+    execute("DELETE FROM users WHERE id=%s", (current_user.id,))
+    
+    # Logout user
+    logout_user()
+    
+    flash(f'Account {username} has been deleted', 'success')
+    return redirect(url_for('routes.index'))
+
+
 @bp.post('/teacher/feedback/<int:feedback_id>/mark-read')
 @login_required
 def mark_feedback_read(feedback_id: int):

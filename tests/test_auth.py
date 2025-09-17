@@ -4,7 +4,8 @@ from .conftest import login, register
 def test_login_success(client):
     resp = login(client, 'alice', 'Password123!')
     assert resp.status_code == 200
-    assert b'Dashboard' in resp.data or b'Your subjects' in resp.data
+    # Alice is seeded as a teacher, so should see "Your subjects" or admin subjects
+    assert b'Your subjects' in resp.data or b'All subjects' in resp.data
 
 
 def test_login_fail(client):

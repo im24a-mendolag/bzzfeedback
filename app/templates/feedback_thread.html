@@ -4,7 +4,7 @@
   <div class="card">
     <div class="space-between">
       <div class="vstack">
-        <h2 style="margin:0">{{ fb.title }}</h2>
+        <h2 class="m-0">{{ fb.title }}</h2>
         <div class="tag">Teacher: {{ fb.teacher_name }} • Subject: {{ fb.subject_name }}{% if fb.student_name %} • {{ fb.student_name }}{% endif %}</div>
       </div>
       
@@ -18,14 +18,14 @@
       <p>No messages yet.</p>
     {% else %}
       {% for m in messages %}
-        <div class="space-between" style="align-items:flex-start;margin:.4rem 0">
+        <div class="space-between align-start mb-2">
           <div class="vstack">
             <strong>{{ m.sender_name }}</strong>
             <div>{{ m.message }}</div>
           </div>
           <div class="tag">{{ m.created_at }}</div>
         </div>
-        {% if not loop.last %}<hr style="border:none;border-top:1px solid #eee" />{% endif %}
+        {% if not loop.last %}<hr class="separator" />{% endif %}
       {% endfor %}
     {% endif %}
   </div>
