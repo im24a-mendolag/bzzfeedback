@@ -54,16 +54,58 @@ def main():
             print("No subjects found. Please run scripts/init_db.py first.")
             return
 
-        # Ensure some students
+        # Ensure some students with classes
         student_usernames = [f"stud{i}" for i in range(1, 21)]
-        for uname in student_usernames:
+        classes = ['Grade 9A', 'Grade 9B', 'Grade 10A', 'Grade 10B', 'Grade 11A', 'Grade 11B', 'Grade 12A', 'Grade 12B']
+        
+        for i, uname in enumerate(student_usernames):
             cur.execute("SELECT id FROM users WHERE username=%s", (uname,))
             row = cur.fetchone()
             if not row:
                 # Simple password placeholder; you can login if needed
                 from werkzeug.security import generate_password_hash
                 pw = generate_password_hash("Passw0rd!")
-                cur.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'student')", (uname, pw))
+                # Assign students to different classes
+                student_class = classes[i % len(classes)]
+                cur.execute("INSERT INTO users (username, password_hash, role, class_name) VALUES (%s, %s, 'student', %s)", (uname, pw, student_class))
+        conn.commit()
+        
+        # Ensure teacher-class relationships exist (at least 2 teachers per class)
+        # First, ensure each class has at least 2 teachers
+        for class_name in classes:
+            cur.execute("SELECT COUNT(*) as count FROM teacher_classes WHERE class_name=%s", (class_name,))
+            count_result = cur.fetchone()
+            current_count = count_result['count'] if count_result else 0
+            
+            if current_count < 2:
+                # Get teachers not yet assigned to this class
+                cur.execute("""
+                    SELECT t.id FROM teachers t 
+                    WHERE t.id NOT IN (
+                        SELECT tc.teacher_id FROM teacher_classes tc WHERE tc.class_name = %s
+                    )
+                    ORDER BY RAND()
+                    LIMIT %s
+                """, (class_name, 2 - current_count))
+                available_teachers = cur.fetchall()
+                
+                # Assign these teachers to the class
+                for teacher in available_teachers:
+                    cur.execute("INSERT INTO teacher_classes (teacher_id, class_name) VALUES (%s, %s)", (teacher['id'], class_name))
+        
+        # Then add some additional random assignments for variety
+        for teacher in teachers:
+            # Each teacher teaches additional classes (2-4 total)
+            cur.execute("SELECT COUNT(*) as count FROM teacher_classes WHERE teacher_id=%s", (teacher['id'],))
+            count_result = cur.fetchone()
+            current_teacher_count = count_result['count'] if count_result else 0
+            
+            if current_teacher_count < 4:
+                additional_classes = random.sample(classes, min(random.randint(1, 3), 4 - current_teacher_count))
+                for class_name in additional_classes:
+                    cur.execute("SELECT 1 FROM teacher_classes WHERE teacher_id=%s AND class_name=%s", (teacher['id'], class_name))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO teacher_classes (teacher_id, class_name) VALUES (%s, %s)", (teacher['id'], class_name))
         conn.commit()
 
         cur.execute("SELECT id, username FROM users WHERE role='student' ORDER BY id")
@@ -107,8 +149,40 @@ def main():
         created = 0
         for _ in range(num_items):
             student = random.choice(students)
-            teacher = random.choice(teachers)
-            subject = random.choice(subjects)
+            
+            # Get student's class
+            cur.execute("SELECT class_name FROM users WHERE id=%s", (student['id'],))
+            student_class_row = cur.fetchone()
+            if not student_class_row or not student_class_row['class_name']:
+                continue  # Skip students without class
+            
+            student_class = student_class_row['class_name']
+            
+            # Get teachers that teach this student's class
+            cur.execute("""
+                SELECT t.id FROM teachers t 
+                JOIN teacher_classes tc ON tc.teacher_id = t.id 
+                WHERE tc.class_name = %s
+            """, (student_class,))
+            available_teachers = cur.fetchall()
+            
+            if not available_teachers:
+                continue  # Skip if no teachers teach this class
+            
+            teacher = random.choice(available_teachers)
+            
+            # Get subjects that this teacher teaches
+            cur.execute("""
+                SELECT s.id FROM subjects s 
+                JOIN teacher_subjects ts ON ts.subject_id = s.id 
+                WHERE ts.teacher_id = %s
+            """, (teacher['id'],))
+            available_subjects = cur.fetchall()
+            
+            if not available_subjects:
+                continue  # Skip if teacher has no subjects
+            
+            subject = random.choice(available_subjects)
             category = random.choice(global_categories)
             title = random.choice(titles)
             info = random.choice(infos)

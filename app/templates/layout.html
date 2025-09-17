@@ -1,40 +1,125 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}BZZ Feedback{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <header>
-      <div class="brand">BZZ Feedback</div>
-      <nav>
-        {% if current_user.is_authenticated %}
-          {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('routes.admin_feedback') }}">Feedback</a>
-            <a href="{{ url_for('routes.admin_users') }}">Users</a>
-          {% else %}
-            <a href="{{ url_for('routes.dashboard') }}">Dashboard</a>
+    <div class="app-container">
+      <header class="main-header">
+        <div class="header-content">
+          <div class="brand">
+            <div class="brand-icon">📚</div>
+            <div class="brand-text">
+              <h1>BZZ Feedback</h1>
+              <span class="brand-subtitle">Educational Feedback System</span>
+            </div>
+          </div>
+          <nav class="main-nav">
+            {% if current_user.is_authenticated %}
+              <div class="user-info">
+                <span class="user-role">{{ current_user.role.title() }}</span>
+                <span class="user-name">{{ current_user.username }}</span>
+                {% if current_user.class_name %}
+                  <span class="user-class">{{ current_user.class_name }}</span>
+                {% endif %}
+              </div>
+              <div class="nav-links">
+                {% if current_user.role == 'admin' %}
+                  <a href="{{ url_for('routes.admin_feedback') }}" class="nav-link">
+                    <span class="nav-icon">📊</span>
+                    Feedback
+                  </a>
+                  <a href="{{ url_for('routes.admin_users') }}" class="nav-link">
+                    <span class="nav-icon">👥</span>
+                    Users
+                  </a>
+                {% elif current_user.role == 'student' %}
+                  <a href="{{ url_for('routes.dashboard') }}" class="nav-link">
+                    <span class="nav-icon">🏠</span>
+                    Dashboard
+                  </a>
+                  <a href="{{ url_for('routes.my_feedback') }}" class="nav-link">
+                    <span class="nav-icon">📝</span>
+                    My Feedback
+                  </a>
+                {% elif current_user.role == 'teacher' %}
+                  <a href="{{ url_for('routes.dashboard') }}" class="nav-link">
+                    <span class="nav-icon">🏠</span>
+                    Dashboard
+                  </a>
+                  <a href="{{ url_for('routes.teacher_feedback') }}" class="nav-link">
+                    <span class="nav-icon">📚</span>
+                    My Classes
+                  </a>
+                {% endif %}
+                <a href="{{ url_for('routes.account_settings') }}" class="nav-link">
+                  <span class="nav-icon">⚙️</span>
+                  Account
+                </a>
+                <form method="post" action="{{ url_for('routes.logout') }}" class="logout-form">
+                  <button class="btn btn-outline" type="submit">
+                    <span class="nav-icon">🚪</span>
+                    Logout
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <div class="nav-links">
+                <a href="{{ url_for('routes.login') }}" class="nav-link">
+                  <span class="nav-icon">🔑</span>
+                  Login
+                </a>
+                <a href="{{ url_for('routes.register') }}" class="btn btn-primary">
+                  <span class="nav-icon">📝</span>
+                  Register
+                </a>
+              </div>
+            {% endif %}
+          </nav>
+        </div>
+      </header>
+
+      <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">
+                  <span class="flash-icon">
+                    {% if category == 'error' %}❌
+                    {% elif category == 'success' %}✅
+                    {% elif category == 'warning' %}⚠️
+                    {% else %}ℹ️{% endif %}
+                  </span>
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
           {% endif %}
-          <a href="{{ url_for('routes.account_settings') }}">Account</a>
-          <form method="post" action="{{ url_for('routes.logout') }}" class="inline">
-            <button class="btn" type="submit">Logout</button>
-          </form>
-        {% else %}
-          <a href="{{ url_for('routes.login') }}">Login</a>
-          <a href="{{ url_for('routes.register') }}">Register</a>
-        {% endif %}
-      </nav>
-    </header>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="main-footer">
+        <div class="footer-content">
+          <p>&copy; 2024 BZZ Feedback System. Built with ❤️ for education.</p>
+          <div class="footer-links">
+            <a href="#" class="footer-link">Privacy Policy</a>
+            <a href="#" class="footer-link">Terms of Service</a>
+            <a href="#" class="footer-link">Support</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  </html>
+</html>
 

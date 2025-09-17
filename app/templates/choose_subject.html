@@ -1,37 +1,237 @@
 {% extends 'layout.html' %}
-{% block title %}Choose subject{% endblock %}
+{% block title %}Submit Feedback{% endblock %}
 {% block content %}
-  <h2>Choose a subject and category</h2>
-  <form method="post" action="{{ url_for('routes.submit_feedback') }}">
-    <input type="hidden" name="teacher_id" value="{{ teacher_id }}" />
-    <label>Subject
-      <select name="subject_id" required>
-        {% for s in subjects %}
-          <option value="{{ s.id }}">{{ s.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Category
-      <select name="category_id" id="category_id" required>
-        {% for c in categories %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-        {% endfor %}
-        <option value="__custom__">Other (write your own)</option>
-      </select>
-    </label>
-    <div id="custom_category_wrap" class="hidden">
-      <label>Or write your own category (required)
-        <input type="text" name="custom_category" id="custom_category" placeholder="e.g., Homework clarity" />
-      </label>
-    </div>
-    <label>Title
-      <input type="text" name="title" required />
-    </label>
-    <label>Info
-      <textarea name="info" rows="6" required></textarea>
-    </label>
-    <button class="btn primary" type="submit">Send feedback</button>
-  </form>
-  <script src="{{ url_for('static', filename='js/choose_subject.js') }}"></script>
+<div class="feedback-container">
+  <div class="feedback-header">
+    <h2>Submit Feedback</h2>
+    <p class="muted">Share your thoughts and help improve the learning experience.</p>
+  </div>
+  
+  <div class="feedback-card">
+    <form method="post" action="{{ url_for('routes.submit_feedback') }}" class="feedback-form">
+      <input type="hidden" name="teacher_id" value="{{ teacher_id }}" />
+      
+      <div class="form-section">
+        <h3 class="section-title">
+          <span class="section-icon">📚</span>
+          Subject & Category
+        </h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="subject_id">
+              <span class="label-icon">🎯</span>
+              Subject
+            </label>
+            <select id="subject_id" name="subject_id" required>
+              {% for s in subjects %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="category_id">
+              <span class="label-icon">🏷️</span>
+              Category
+            </label>
+            <select id="category_id" name="category_id" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+              <option value="__custom__">Other (write your own)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="custom_category_wrap" class="hidden">
+          <div class="form-group">
+            <label for="custom_category">
+              <span class="label-icon">✏️</span>
+              Custom Category
+            </label>
+            <input 
+              type="text" 
+              id="custom_category" 
+              name="custom_category" 
+              placeholder="e.g., Homework clarity, Class participation, etc."
+            />
+            <small class="form-help">Describe the specific area you want to provide feedback on</small>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3 class="section-title">
+          <span class="section-icon">💭</span>
+          Your Feedback
+        </h3>
+        
+        <div class="form-group">
+          <label for="title">
+            <span class="label-icon">📝</span>
+            Title
+          </label>
+          <input 
+            type="text" 
+            id="title"
+            name="title" 
+            placeholder="Brief summary of your feedback"
+            required 
+          />
+          <small class="form-help">Give your feedback a clear, descriptive title</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="info">
+            <span class="label-icon">📄</span>
+            Detailed Feedback
+          </label>
+          <textarea 
+            id="info"
+            name="info" 
+            rows="6" 
+            placeholder="Share your thoughts, suggestions, or concerns in detail..."
+            required
+          ></textarea>
+          <small class="form-help">Be specific and constructive in your feedback</small>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn btn-primary btn-large" type="submit">
+          <span class="nav-icon">🚀</span>
+          Submit Feedback
+        </button>
+        <a href="{{ url_for('routes.dashboard') }}" class="btn btn-outline">
+          <span class="nav-icon">↩️</span>
+          Back to Dashboard
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.feedback-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.feedback-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.feedback-header h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: var(--space-3);
+}
+
+.feedback-card {
+  background: var(--white);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-8);
+  border: 1px solid var(--gray-200);
+}
+
+.feedback-form {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.form-section {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--gray-100);
+}
+
+.section-icon {
+  font-size: var(--font-size-lg);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: var(--font-size-sm);
+}
+
+.label-icon {
+  font-size: var(--font-size-sm);
+}
+
+.form-help {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+  margin-top: var(--space-1);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--gray-200);
+}
+
+.btn-large {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .feedback-container {
+    padding: var(--space-4);
+  }
+  
+  .feedback-card {
+    padding: var(--space-6);
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .feedback-header h2 {
+    font-size: var(--font-size-2xl);
+  }
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/choose_subject.js') }}"></script>
 {% endblock %}
 

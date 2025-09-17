@@ -33,7 +33,7 @@ def register():
         display_name = request.form.get('display_name', '').strip()
         password = request.form.get('password', '')
         password2 = request.form.get('password2', '')
-        is_teacher = request.form.get('is_teacher') == 'on'
+        class_name = request.form.get('class_name', '').strip()
 
         if not username or not password:
             flash('Please fill all required fields', 'error')
@@ -43,29 +43,30 @@ def register():
             flash('Passwords do not match', 'error')
             return render_template('register.html')
 
+        # Class selection is required for all registrations (students only)
+        if not class_name:
+            flash('Please select your class', 'error')
+            return render_template('register.html')
+
         existing = query_one('SELECT id FROM users WHERE username=%s', (username,))
         if existing:
             flash('Username already taken', 'error')
             current_app.logger.info(f"register duplicate username={username}")
             return render_template('register.html')
 
-        role = 'teacher' if is_teacher else 'student'
+        # All registrations are students now
         user_id = execute(
-            'INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)',
-            (username, hash_password(password), role),
+            'INSERT INTO users (username, password_hash, role, class_name) VALUES (%s, %s, %s, %s)',
+            (username, hash_password(password), 'student', class_name),
         )
 
-        if role == 'teacher':
-            execute('INSERT INTO teachers (user_id) VALUES (%s)', (user_id,))
-            current_app.logger.info(f"register teacher user_id={user_id} username={username}")
-        else:
-            current_app.logger.info(f"register student user_id={user_id} username={username}")
+        current_app.logger.info(f"register student user_id={user_id} username={username} class={class_name}")
 
         # Auto-login after register
-        user_row = query_one('SELECT id, username, role FROM users WHERE id=%s', (user_id,))
+        user_row = query_one('SELECT id, username, role, class_name FROM users WHERE id=%s', (user_id,))
         if user_row:
             from .auth import User  # local import to avoid circular at top
-            login_user(User(user_row['id'], user_row['username'], user_row['role']))
+            login_user(User(user_row['id'], user_row['username'], user_row['role'], user_row['class_name']))
             return redirect(url_for('routes.dashboard'))
 
         flash('Registration complete. Please login.', 'success')
@@ -90,16 +91,37 @@ def dashboard():
     if current_user.role == 'admin':
         return redirect(url_for('routes.admin_feedback'))
     # student flow: choose teacher then subject
-    teachers = query_all(
-        """
-        SELECT t.id, u.username
-        FROM teachers t
-        JOIN users u ON u.id = t.user_id
-        ORDER BY u.username
-        """
-    )
-    current_app.logger.info(f"view student dashboard user_id={current_user.id} teachers={len(teachers)}")
-    return render_template('student_dashboard.html', teachers=teachers)
+    # Get student's class information
+    student_info = query_one('SELECT class_name FROM users WHERE id=%s', (current_user.id,))
+    student_class = student_info['class_name'] if student_info else None
+    
+    if not student_class:
+        # If student has no class assigned, show all teachers (fallback)
+        teachers = query_all(
+            """
+            SELECT t.id, u.username
+            FROM teachers t
+            JOIN users u ON u.id = t.user_id
+            ORDER BY u.username
+            """
+        )
+        current_app.logger.warning(f"student {current_user.id} has no class assigned, showing all teachers")
+    else:
+        # Show only teachers that teach the student's class
+        teachers = query_all(
+            """
+            SELECT DISTINCT t.id, u.username
+            FROM teachers t
+            JOIN users u ON u.id = t.user_id
+            JOIN teacher_classes tc ON tc.teacher_id = t.id
+            WHERE tc.class_name = %s
+            ORDER BY u.username
+            """,
+            (student_class,)
+        )
+    
+    current_app.logger.info(f"view student dashboard user_id={current_user.id} class={student_class} teachers={len(teachers)}")
+    return render_template('student_dashboard.html', teachers=teachers, student_class=student_class)
 
 
 @bp.get('/my-feedback')
