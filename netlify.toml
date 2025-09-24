@@ -1,0 +1,12 @@
+[build]
+  command = "echo 'This is a Flask app - use Railway or Render instead'"
+  publish = "."
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Note: This Flask app requires a backend server and database.
+# Netlify is designed for static sites and serverless functions.
+# Consider deploying to Railway, Render, or Heroku instead.

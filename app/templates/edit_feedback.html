@@ -20,6 +20,43 @@
       
       <div class="form-section">
         <h3 class="section-title">
+          <span class="section-icon">🏷️</span>
+          Category
+        </h3>
+        
+        <div class="form-group">
+          <label for="category_id">
+            <span class="label-icon">📂</span>
+            Feedback Type
+          </label>
+          <select id="category_id" name="category_id" required>
+            {% for c in categories %}
+              <option value="{{ c.id }}" {% if feedback.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+            <option value="__custom__" {% if not feedback.category_id %}selected{% endif %}>Other (write your own)</option>
+          </select>
+          <small class="form-help">Choose the type of feedback (e.g., Exams, Clarity, etc.)</small>
+        </div>
+        
+        <div id="custom_category_wrap" class="hidden">
+          <div class="form-group">
+            <label for="custom_category">
+              <span class="label-icon">✏️</span>
+              Custom Category
+            </label>
+            <input 
+              type="text" 
+              id="custom_category" 
+              name="custom_category" 
+              placeholder="e.g., Homework clarity, Class participation, etc."
+            />
+            <small class="form-help">Describe the specific area you want to provide feedback on</small>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3 class="section-title">
           <span class="section-icon">💭</span>
           Your Feedback
         </h3>
@@ -185,6 +222,10 @@
   justify-content: center;
 }
 
+.hidden {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .feedback-container {
     padding: var(--space-4);
@@ -208,4 +249,25 @@
   }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category_id');
+    const customCategoryWrap = document.getElementById('custom_category_wrap');
+    
+    function toggleCustomCategory() {
+        if (categorySelect.value === '__custom__') {
+            customCategoryWrap.classList.remove('hidden');
+        } else {
+            customCategoryWrap.classList.add('hidden');
+        }
+    }
+    
+    // Initial check
+    toggleCustomCategory();
+    
+    // Listen for changes
+    categorySelect.addEventListener('change', toggleCustomCategory);
+});
+</script>
 {% endblock %}
