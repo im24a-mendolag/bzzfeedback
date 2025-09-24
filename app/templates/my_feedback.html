@@ -96,6 +96,10 @@
               <span class="nav-icon">💬</span>
               View Thread
             </a>
+            <a href="{{ url_for('routes.edit_feedback', feedback_id=f.id) }}" class="btn btn-outline">
+              <span class="nav-icon">✏️</span>
+              Edit
+            </a>
             <form method="post" action="{{ url_for('routes.delete_feedback', feedback_id=f.id) }}" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this feedback? This action cannot be undone.');">
               <button class="btn btn-danger" type="submit">
                 <span class="nav-icon">🗑️</span>

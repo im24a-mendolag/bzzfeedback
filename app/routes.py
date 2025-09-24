@@ -163,6 +163,65 @@ def delete_feedback(feedback_id: int):
     return redirect(url_for('routes.my_feedback'))
 
 
+@bp.route('/feedback/<int:feedback_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_feedback(feedback_id: int):
+    # only the student who created it can edit
+    if current_user.role != 'student':
+        return redirect(url_for('routes.dashboard'))
+    
+    # Get feedback details
+    fb = query_one(
+        """
+        SELECT f.id, f.student_id, f.teacher_id, f.subject_id, f.category_id, f.title, f.info,
+               s.name AS subject_name,
+               u.username AS teacher_name
+        FROM feedback f
+        JOIN subjects s ON s.id = f.subject_id
+        JOIN teachers t ON t.id = f.teacher_id
+        JOIN users u ON u.id = t.user_id
+        WHERE f.id=%s
+        """,
+        (feedback_id,),
+    )
+    
+    if not fb:
+        flash('Feedback not found', 'error')
+        return redirect(url_for('routes.my_feedback'))
+    
+    if fb['student_id'] != int(current_user.id):
+        flash('You can only edit your own feedback', 'error')
+        return redirect(url_for('routes.my_feedback'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        info = request.form.get('info', '').strip()
+        
+        if not title or not info:
+            flash('Title and feedback content are required', 'error')
+            return redirect(url_for('routes.edit_feedback', feedback_id=feedback_id))
+        
+        execute(
+            "UPDATE feedback SET title=%s, info=%s WHERE id=%s",
+            (title, info, feedback_id)
+        )
+        flash('Feedback updated successfully', 'success')
+        current_app.logger.info(f"edit feedback id={feedback_id} by user_id={current_user.id}")
+        return redirect(url_for('routes.my_feedback'))
+    
+    # Get available categories for this subject
+    categories = query_all(
+        """
+        SELECT id, name FROM feedback_categories 
+        WHERE subject_id IS NULL OR subject_id = %s 
+        ORDER BY name
+        """,
+        (fb['subject_id'],)
+    )
+    
+    return render_template('edit_feedback.html', feedback=fb, categories=categories)
+
+
 @bp.get('/choose-subject/<int:teacher_id>')
 @login_required
 def choose_subject(teacher_id: int):
@@ -179,8 +238,21 @@ def choose_subject(teacher_id: int):
     categories = query_all(
         "SELECT id, name FROM feedback_categories WHERE subject_id IS NULL ORDER BY name"
     )
+    
+    # Get teacher's name
+    teacher_info = query_one(
+        """
+        SELECT u.username
+        FROM teachers t
+        JOIN users u ON u.id = t.user_id
+        WHERE t.id = %s
+        """,
+        (teacher_id,),
+    )
+    teacher_name = teacher_info['username'] if teacher_info else 'Unknown Teacher'
+    
     current_app.logger.info(f"choose_subject user_id={current_user.id} teacher_id={teacher_id} subjects={len(subjects)}")
-    return render_template('choose_subject.html', teacher_id=teacher_id, subjects=subjects, categories=categories)
+    return render_template('choose_subject.html', teacher_id=teacher_id, teacher_name=teacher_name, subjects=subjects, categories=categories)
 
 
 @bp.route('/submit-feedback', methods=['GET', 'POST'])

@@ -1,69 +1,22 @@
 {% extends 'layout.html' %}
-{% block title %}Submit Feedback{% endblock %}
+{% block title %}Edit Feedback{% endblock %}
 {% block content %}
 <div class="feedback-container">
   <div class="feedback-header">
-    <h2>Submit Feedback</h2>
+    <h2>Edit Feedback</h2>
     <div class="teacher-info">
       <span class="teacher-label">👨‍🏫 Teacher:</span>
-      <span class="teacher-name">{{ teacher_name }}</span>
+      <span class="teacher-name">{{ feedback.teacher_name }}</span>
     </div>
-    <p class="muted">Share your thoughts and help improve the learning experience.</p>
+    <div class="subject-info">
+      <span class="subject-label">📚 Subject:</span>
+      <span class="subject-name">{{ feedback.subject_name }}</span>
+    </div>
+    <p class="muted">Update your feedback to help improve the learning experience.</p>
   </div>
   
   <div class="feedback-card">
-    <form method="post" action="{{ url_for('routes.submit_feedback') }}" class="feedback-form">
-      <input type="hidden" name="teacher_id" value="{{ teacher_id }}" />
-      
-      <div class="form-section">
-        <h3 class="section-title">
-          <span class="section-icon">📚</span>
-          Subject & Category
-        </h3>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="subject_id">
-              <span class="label-icon">🎯</span>
-              Subject
-            </label>
-            <select id="subject_id" name="subject_id" required>
-              {% for s in subjects %}
-                <option value="{{ s.id }}">{{ s.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="category_id">
-              <span class="label-icon">🏷️</span>
-              Category
-            </label>
-            <select id="category_id" name="category_id" required>
-              {% for c in categories %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-              {% endfor %}
-              <option value="__custom__">Other (write your own)</option>
-            </select>
-          </div>
-        </div>
-        
-        <div id="custom_category_wrap" class="hidden">
-          <div class="form-group">
-            <label for="custom_category">
-              <span class="label-icon">✏️</span>
-              Custom Category
-            </label>
-            <input 
-              type="text" 
-              id="custom_category" 
-              name="custom_category" 
-              placeholder="e.g., Homework clarity, Class participation, etc."
-            />
-            <small class="form-help">Describe the specific area you want to provide feedback on</small>
-          </div>
-        </div>
-      </div>
+    <form method="post" action="{{ url_for('routes.edit_feedback', feedback_id=feedback.id) }}" class="feedback-form">
       
       <div class="form-section">
         <h3 class="section-title">
@@ -80,6 +33,7 @@
             type="text" 
             id="title"
             name="title" 
+            value="{{ feedback.title }}"
             placeholder="Brief summary of your feedback"
             required 
           />
@@ -97,19 +51,19 @@
             rows="6" 
             placeholder="Share your thoughts, suggestions, or concerns in detail..."
             required
-          ></textarea>
+          >{{ feedback.info }}</textarea>
           <small class="form-help">Be specific and constructive in your feedback</small>
         </div>
       </div>
       
       <div class="form-actions">
         <button class="btn btn-primary btn-large" type="submit">
-          <span class="nav-icon">🚀</span>
-          Submit Feedback
+          <span class="nav-icon">💾</span>
+          Update Feedback
         </button>
-        <a href="{{ url_for('routes.dashboard') }}" class="btn btn-outline">
+        <a href="{{ url_for('routes.my_feedback') }}" class="btn btn-outline">
           <span class="nav-icon">↩️</span>
-          Back to Dashboard
+          Back to My Feedback
         </a>
       </div>
     </form>
@@ -134,28 +88,28 @@
   margin-bottom: var(--space-3);
 }
 
-.teacher-info {
+.teacher-info, .subject-info {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   background: var(--gray-50);
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-200);
 }
 
-.teacher-label {
+.teacher-label, .subject-label {
   font-weight: 600;
   color: var(--gray-700);
   font-size: var(--font-size-sm);
 }
 
-.teacher-name {
+.teacher-name, .subject-name {
   font-weight: 700;
   color: var(--primary);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
 }
 
 .feedback-card {
@@ -190,12 +144,6 @@
 
 .section-icon {
   font-size: var(--font-size-lg);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
 }
 
 .form-group {
@@ -246,10 +194,6 @@
     padding: var(--space-6);
   }
   
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
   .form-actions {
     flex-direction: column;
   }
@@ -257,9 +201,11 @@
   .feedback-header h2 {
     font-size: var(--font-size-2xl);
   }
+  
+  .teacher-info, .subject-info {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
 }
 </style>
-
-<script src="{{ url_for('static', filename='js/choose_subject.js') }}"></script>
 {% endblock %}
-
