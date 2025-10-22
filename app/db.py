@@ -12,27 +12,18 @@ class MySQLPool:
             # Add SSL configuration for Railway/cloud deployments
             db_config = DB_CONFIG.copy()
             
-            print(f"DEBUG: Initializing MySQL pool with config: {db_config}")
-            
             # Add SSL configuration if not localhost (Railway requirement)
             if db_config.get('host') != 'localhost':
                 db_config['ssl_disabled'] = False
                 db_config['ssl_verify_cert'] = False
                 db_config['ssl_verify_identity'] = False
-                print("DEBUG: Added SSL configuration for cloud deployment")
             
-            try:
-                cls._pool = pooling.MySQLConnectionPool(
-                    pool_name="bzz_pool",
-                    pool_size=5,
-                    pool_reset_session=True,
-                    **db_config,
-                )
-                print("DEBUG: MySQL pool initialized successfully")
-            except Exception as e:
-                print(f"ERROR: Failed to initialize MySQL pool: {e}")
-                print(f"ERROR: Database config was: {db_config}")
-                raise
+            cls._pool = pooling.MySQLConnectionPool(
+                pool_name="bzz_pool",
+                pool_size=5,
+                pool_reset_session=True,
+                **db_config,
+            )
 
     @classmethod
     def get_connection(cls):
