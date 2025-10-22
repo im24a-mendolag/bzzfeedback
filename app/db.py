@@ -9,20 +9,11 @@ class MySQLPool:
     @classmethod
     def init_pool(cls) -> None:
         if cls._pool is None:
-            # Add SSL configuration for Railway/cloud deployments
-            db_config = DB_CONFIG.copy()
-            
-            # Add SSL configuration if not localhost (Railway requirement)
-            if db_config.get('host') != 'localhost':
-                db_config['ssl_disabled'] = False
-                db_config['ssl_verify_cert'] = False
-                db_config['ssl_verify_identity'] = False
-            
             cls._pool = pooling.MySQLConnectionPool(
                 pool_name="bzz_pool",
                 pool_size=5,
                 pool_reset_session=True,
-                **db_config,
+                **DB_CONFIG,
             )
 
     @classmethod

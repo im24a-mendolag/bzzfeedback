@@ -175,13 +175,11 @@ def edit_feedback(feedback_id: int):
         """
         SELECT f.id, f.student_id, f.teacher_id, f.subject_id, f.category_id, f.title, f.info,
                s.name AS subject_name,
-               u.username AS teacher_name,
-               fc.name AS category_name
+               u.username AS teacher_name
         FROM feedback f
         JOIN subjects s ON s.id = f.subject_id
         JOIN teachers t ON t.id = f.teacher_id
         JOIN users u ON u.id = t.user_id
-        LEFT JOIN feedback_categories fc ON fc.id = f.category_id
         WHERE f.id=%s
         """,
         (feedback_id,),
@@ -198,40 +196,14 @@ def edit_feedback(feedback_id: int):
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         info = request.form.get('info', '').strip()
-        category_id = request.form.get('category_id')
-        custom_category = request.form.get('custom_category', '').strip()
         
         if not title or not info:
             flash('Title and feedback content are required', 'error')
             return redirect(url_for('routes.edit_feedback', feedback_id=feedback_id))
         
-        # Handle category selection
-        if category_id == '__custom__':
-            if custom_category:
-                # Check if custom category already exists for this subject
-                existing = query_one(
-                    "SELECT id FROM feedback_categories WHERE subject_id=%s AND name=%s",
-                    (fb['subject_id'], custom_category),
-                )
-                if existing:
-                    category_id = existing['id']
-                else:
-                    category_id = execute(
-                        "INSERT INTO feedback_categories (subject_id, name) VALUES (%s, %s)",
-                        (fb['subject_id'], custom_category),
-                    )
-            else:
-                flash('Please provide a custom category name', 'error')
-                return redirect(url_for('routes.edit_feedback', feedback_id=feedback_id))
-        elif category_id:
-            category_id = int(category_id)
-        else:
-            flash('Please choose a category', 'error')
-            return redirect(url_for('routes.edit_feedback', feedback_id=feedback_id))
-        
         execute(
-            "UPDATE feedback SET title=%s, info=%s, category_id=%s WHERE id=%s",
-            (title, info, category_id, feedback_id)
+            "UPDATE feedback SET title=%s, info=%s WHERE id=%s",
+            (title, info, feedback_id)
         )
         flash('Feedback updated successfully', 'success')
         current_app.logger.info(f"edit feedback id={feedback_id} by user_id={current_user.id}")
